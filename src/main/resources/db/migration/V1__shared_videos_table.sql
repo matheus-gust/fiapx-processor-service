@@ -1,0 +1,3 @@
+-- Tabela compartilhada com upload-service (mesmo banco uploaddb)
+-- Processor apenas atualiza status e zip_s3_key
+-- Migration de criação está no upload-service

@@ -20,9 +20,10 @@ spring:
         prefetch: 1
 
 minio:
-  url: ${MINIO_URL:http://localhost:9000}
+  endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
   access-key: ${MINIO_ACCESS_KEY:minioadmin}
   secret-key: ${MINIO_SECRET_KEY:minioadmin}
+  bucket: ${MINIO_BUCKET:fiapx-videos}
 
 management:
   endpoints:
@@ -34,11 +35,6 @@ management:
       show-details: always
       probes:
         enabled: true
-  health:
-    livenessstate:
-      enabled: true
-    readinessstate:
-      enabled: true
   metrics:
     tags:
       service: processor-service
