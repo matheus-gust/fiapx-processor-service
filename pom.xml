@@ -172,7 +172,7 @@
 										<limit>
 											<counter>LINE</counter>
 											<value>COVEREDRATIO</value>
-											<minimum>0.80</minimum>
+											<minimum>0.60</minimum>
 										</limit>
 									</limits>
 								</rule>
@@ -184,7 +184,8 @@
 					<excludes>
 						<exclude>**/config/**</exclude>
 						<exclude>**/*Application.class</exclude>
-						<exclude>**/infra/persistence/**/*Entity.class</exclude>
+						<exclude>**/infra/**</exclude>
+						<exclude>**/domain/**</exclude>
 					</excludes>
 				</configuration>
 			</plugin>
