@@ -1,0 +1,102 @@
+name: pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+      - uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Testes unitarios e cobertura (gate 80%)
+        run: ./mvnw -B test
+      - name: JaCoCo badge
+        id: jacoco
+        uses: cicirello/jacoco-badge-generator@v2
+        with:
+          jacoco-csv-file: target/site/jacoco/jacoco.csv
+      - name: Upload relatorio JaCoCo
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: target/site/jacoco/
+
+  code-quality:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+      - uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+      - name: Analise SonarCloud
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -n "$SONAR_TOKEN" ]; then
+            ./mvnw -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+              -Dsonar.host.url=https://sonarcloud.io \
+              -Dsonar.organization=matheus-gust \
+              -Dsonar.projectKey=fiapx-processor-service \
+              -Dsonar.qualitygate.wait=true
+          else
+            ./mvnw -B verify
+          fi
+
+  build-and-deploy:
+    needs: code-quality
+    runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/main' && vars.DEPLOY_TO_EKS == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build and push image to ECR
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64
+          tags: ${{ steps.ecr.outputs.registry }}/processor-service:latest
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+      - name: Deploy to EKS
+        run: |
+          aws eks update-kubeconfig --region ${{ secrets.AWS_REGION }} --name fiapx
+          kubectl apply -f k8s/ -n fiapx
+          kubectl set image deployment/processor-service processor-service=${{ steps.ecr.outputs.registry }}/processor-service:latest -n fiapx
+          kubectl rollout status deployment/processor-service -n fiapx --timeout=600s

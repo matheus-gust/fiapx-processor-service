@@ -1,0 +1,19 @@
+<configuration>
+    <springProfile name="prod">
+        <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <includeCallerData>false</includeCallerData>
+                <customFields>{"service":"processor-service","env":"prod"}</customFields>
+            </encoder>
+        </appender>
+        <root level="INFO"><appender-ref ref="JSON_CONSOLE"/></root>
+        <logger name="br.com.fiap.fiapx" level="DEBUG"/>
+    </springProfile>
+    <springProfile name="dev,test">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder><pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern></encoder>
+        </appender>
+        <root level="INFO"><appender-ref ref="CONSOLE"/></root>
+        <logger name="br.com.fiap.fiapx" level="DEBUG"/>
+    </springProfile>
+</configuration>
