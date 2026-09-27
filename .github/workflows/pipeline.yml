@@ -22,6 +22,8 @@ jobs:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
+      - name: Instalar ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - name: Testes e cobertura (gate 70%)
         run: ./mvnw -B test
       - name: Upload relatório JaCoCo
