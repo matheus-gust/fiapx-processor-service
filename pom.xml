@@ -177,6 +177,7 @@
 						<exclude>**/config/**</exclude>
 						<exclude>**/*Application.class</exclude>
 						<exclude>**/infra/persistence/**/*Entity.class</exclude>
+						<exclude>**/infra/persistence/**/*Entity$*.class</exclude>
 					</excludes>
 				</configuration>
 			</plugin>

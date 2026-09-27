@@ -20,6 +20,24 @@ class FfmpegVideoProcessorTest {
     Path tempDir;
 
     @Test
+    void extractFramesToZip_shouldReturnZipWithFramesForValidVideo() throws Exception {
+        File video = tempDir.resolve("synthetic.mp4").toFile();
+        Process generate = new ProcessBuilder(
+                "ffmpeg", "-f", "lavfi", "-i", "color=c=black:s=32x32:d=2:r=1",
+                "-y", video.getAbsolutePath())
+                .redirectErrorStream(true).start();
+        generate.waitFor();
+        assertThat(video).exists();
+
+        File zip = processor.extractFramesToZip(video, "success-id");
+
+        assertThat(zip).exists();
+        try (ZipFile zipFile = new ZipFile(zip)) {
+            assertThat(zipFile.size()).isGreaterThan(0);
+        }
+    }
+
+    @Test
     void extractFramesToZip_shouldThrowWhenFfmpegFails() {
         File invalidVideo = tempDir.resolve("fake.mp4").toFile();
         try (FileWriter fw = new FileWriter(invalidVideo)) { fw.write("not-a-real-video"); }
